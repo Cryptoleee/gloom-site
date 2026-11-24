@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gloom</title>
+<meta name="description" content="Gloom is a camera for iPhone that turns whatever is in front of it into moving art, live, while you film. Effects arrive in drops.">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Gloom">
+<meta property="og:title" content="Gloom: not what you see">
+<meta property="og:description" content="A camera that turns whatever is in front of it into moving art, live, while you film.">
+<meta property="og:image" content="og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --ink: #fff;
+    --dim: rgba(255, 255, 255, 0.45);
+    --faint: rgba(255, 255, 255, 0.28);
+    --rule: rgba(255, 255, 255, 0.18);
+    --red: #ff2924;
+    --gutter: 20px;
+    --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: #000; -webkit-text-size-adjust: 100%; }
+  body {
+    background: #000; color: var(--ink);
+    font-family: var(--sans); font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+  :focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 var(--gutter); }
+  .figures { font-family: var(--mono); font-size: 11px; font-weight: 400; letter-spacing: 0.02em; }
+  .dim { color: var(--dim); }
+  .rule { height: 1px; background: var(--rule); }
+
+  /* Header: the mark and the name, as in the app. It lies over the hero. */
+  header { display: flex; align-items: center; gap: 8px; height: 56px; }
+  .mark { width: 14px; height: 14px; position: relative; flex: none; }
+  .mark::before, .mark::after { content: ""; position: absolute; width: 7px; height: 7px; background: var(--ink); }
+  .mark::after { left: 7px; top: 7px; }
+  .name { font-size: 21px; font-weight: 500; }
+  header nav { margin-left: auto; display: flex; gap: 26px; font-size: 16px; font-weight: 400; }
+  header nav a { opacity: 0.6; transition: opacity 0.15s ease-out; }
+  header nav a:hover { opacity: 1; }
+
+  /* Hero: the clip edge to edge, the words over it. */
+  .hero { position: relative; height: max(min(100svh, 56.25vw), 560px); overflow: hidden; background: #0d0d0d; }
+  .hero .film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero::after {
+    /* Darkens the top for the header and the bottom for the words. */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background:
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent 22%),
+      linear-gradient(to top, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.6) 30%, transparent 62%);
+  }
+  /* A flat black wash over the clip. */
+  .hero .shade { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.3); pointer-events: none; }
+  .hero .wrap { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+  .hero h1 {
+    margin-top: auto;
+    font-weight: 300; line-height: 0.9; letter-spacing: -0.045em;
+    font-size: clamp(60px, 9vw, 136px);
+    text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
+  }
+  .intro { display: grid; gap: 20px; padding: clamp(16px, 2vw, 26px) 0 clamp(22px, 3vw, 40px); }
+  .intro p { font-size: clamp(18px, 1.7vw, 23px); line-height: 1.3; font-weight: 400; max-width: 26em; }
+
+  .frame { position: relative; }
+  .frame::before {
+    /* Crop marks at the four corners, as around the gallery's preview. */
+    content: ""; position: absolute; inset: -5px; pointer-events: none; z-index: 1;
+    --t: rgba(255, 255, 255, 0.9);
+    background:
+      linear-gradient(var(--t), var(--t)) left top / 10px 1px,
+      linear-gradient(var(--t), var(--t)) left top / 1px 10px,
+      linear-gradient(var(--t), var(--t)) right top / 10px 1px,
+      linear-gradient(var(--t), var(--t)) right top / 1px 10px,
+      linear-gradient(var(--t), var(--t)) left bottom / 10px 1px,
+      linear-gradient(var(--t), var(--t)) left bottom / 1px 10px,
+      linear-gradient(var(--t), var(--t)) right bottom / 10px 1px,
+      linear-gradient(var(--t), var(--t)) right bottom / 1px 10px;
+    background-repeat: no-repeat;
+  }
+
+  /* The main action: a bar of moving, grainy colour. */
+  .bar {
+    position: relative; display: flex; align-items: center; justify-content: space-between;
+    height: 60px; padding: 0 18px; width: 100%; max-width: 440px;
+    color: #000; font-size: 22px; font-weight: 500; overflow: hidden;
+    background: linear-gradient(100deg, #ff7a1f, #4a8cff 45%, #ffe9c9 70%, #ff7a1f);
+  }
+  .bar canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bar span, .bar svg { position: relative; }
+  .bar svg { width: 34px; height: 14px; stroke: #000; stroke-width: 1.5; fill: none; }
+  .bar[aria-disabled="true"] { cursor: default; }
+
+  section { padding-top: clamp(70px, 10vw, 140px); }
+  /* Section titles are set like the app's posters: large, light, tight. */
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding-bottom: clamp(14px, 1.6vw, 22px); }
+  .head .figures { white-space: nowrap; }
+  .head h2 { font-weight: 300; font-size: clamp(52px, 8.4vw, 128px); letter-spacing: -0.045em; line-height: 0.92; }
+
+  /* Examples: clips filmed in the app, each in another effect. */
+  .shots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 26px 12px; padding-top: 22px; }
+  .shots figure { margin: 0; }
+  .shots .frame { aspect-ratio: 9 / 16; }
+  .shots video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #0d0d0d; }
+  .shots figcaption { display: flex; justify-content: space-between; align-items: baseline; padding-top: 14px; }
+  .shots figcaption b { font-family: var(--sans); font-weight: 400; font-size: clamp(19px, 1.7vw, 26px); letter-spacing: -0.01em; color: var(--ink); }
+
+  /* The shutter, as in the app: a grainy sphere that tightens into a block while it rolls. */
+  .shutter { position: relative; display: grid; justify-items: center; text-align: center; padding: clamp(10px, 3vw, 40px) 0; }
+  .shutter.flash::after { content: ""; position: fixed; inset: 0; background: #fff; pointer-events: none; animation: flash 0.35s ease-out forwards; }
+  @keyframes flash { from { opacity: 0.75; } to { opacity: 0; } }
+  .orbs { display: flex; align-items: center; gap: clamp(22px, 5vw, 70px); }
+  .orb { display: block; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .orb canvas { display: block; width: 100%; height: 100%; }
+  .orb.mono { width: clamp(70px, 11vw, 150px); aspect-ratio: 1; }
+  #roll { width: clamp(170px, 30vw, 400px); aspect-ratio: 1; }
+  .shutter h2 { font-weight: 300; font-size: clamp(54px, 9vw, 136px); letter-spacing: -0.045em; line-height: 0.92; padding-top: clamp(26px, 4vw, 50px); }
+  .shutter .say { display: block; max-width: 24em; padding-top: 20px; font-size: clamp(17px, 1.6vw, 21px); font-weight: 400; line-height: 1.35; color: rgba(255, 255, 255, 0.75); }
+  .shutter p.figures { display: flex; align-items: center; gap: 8px; padding-top: 22px; color: var(--dim); min-height: 1.4em; }
+  .shutter p.figures .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); opacity: 0; transition: opacity 0.15s ease-out; }
+  .shutter.rolling p.figures { color: var(--ink); }
+  .shutter.rolling p.figures .dot { opacity: 1; }
+
+  /* The last word: one wide bar. */
+  .get .bar { max-width: none; width: 100%; height: clamp(76px, 11vw, 150px); font-size: clamp(21px, 4vw, 56px); white-space: nowrap; padding: 0 clamp(18px, 3vw, 40px); letter-spacing: -0.02em; }
+  .get .bar svg { width: clamp(44px, 6vw, 90px); height: clamp(18px, 2.4vw, 36px); stroke-width: 1.5; }
+
+  /* Drops: a figure drawn in lines of light, on the page's own black. */
+  .drops { display: grid; gap: 10px; padding-top: clamp(70px, 10vw, 140px); }
+  .drops .figure { position: relative; height: min(96svh, 980px); }
+  .drops .figure canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+  .drops .figure video { display: none; }
+  .drops-text { padding: 0 var(--gutter); }
+  .drops .points { grid-template-columns: 1fr; gap: 0; padding-top: 0; }
+  .drops .points div { padding: clamp(14px, 1.4vw, 22px) 0; border-bottom: 1px solid var(--rule); }
+  .drops .points h3 { font-size: clamp(38px, 3.6vw, 64px); }
+  .drops .points p { font-size: clamp(15px, 1.15vw, 18px); padding-top: 8px; opacity: 0.85; }
+  @media (min-width: 900px) {
+    .drops { grid-template-columns: 1fr 1fr; align-items: center; max-width: 1400px; margin: 0 auto; }
+    .drops-text { padding: 0 var(--gutter) 0 0; }
+  }
+
+  /* How it works */
+  .points { display: grid; gap: 30px; padding-top: 24px; }
+  .points div { display: grid; grid-template-columns: 30px 1fr; align-items: baseline; }
+  .points h3 { font-weight: 300; font-size: clamp(34px, 5.4vw, 72px); letter-spacing: -0.035em; line-height: 1.02; }
+  .points p { grid-column: 2; font-size: 16px; font-weight: 400; opacity: 0.7; max-width: 30em; padding-top: 10px; line-height: 1.35; }
+  .get { padding-top: clamp(54px, 7vw, 90px); }
+
+  footer { display: flex; gap: 22px; flex-wrap: wrap; padding: clamp(84px, 12vw, 150px) 0 30px; }
+  footer a:hover { color: var(--ink); }
+  footer span { margin-right: auto; }
+
+  @media (min-width: 900px) {
+    :root { --gutter: 32px; }
+    header { height: 72px; }
+    .intro { grid-template-columns: 1fr auto; align-items: end; }
+    .intro .bar { width: 440px; }
+    .stage { grid-template-columns: minmax(0, 360px) minmax(0, 300px) 1fr; gap: 28px; }
+    .sheet { grid-column: auto; padding: 0 0 0 20px; align-self: end; }
+    .points { grid-template-columns: repeat(3, 1fr); gap: 44px; }
+    .shots { grid-template-columns: repeat(3, 1fr); gap: 44px 22px; }
+  }
+  @media (max-width: 899px) {
+    .hero { height: min(88svh, 760px); }
+    .hero .film { object-position: 56% 50%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="hero">
+  <video class="film" autoplay muted loop playsinline poster="assets/hero.jpg" aria-label="Over a woman's shoulder: her iPhone shows her friend, posing against a concrete wall, drawn in wavy black and white lines.">
+    <source src="assets/hero.mp4" type="video/mp4">
+  </video>
+  <div class="shade" aria-hidden="true"></div>
+  <div class="wrap">
+    <header>
+      <div class="mark" aria-hidden="true"></div>
+      <div class="name">Gloom</div>
+      <nav>
+        <a href="#shots">Shots</a>
+        <a href="#get" data-store>Get it</a>
+      </nav>
+    </header>
+    <h1>Not what<br>you see.</h1>
+    <div class="intro">
+      <p>Gloom is a camera that turns whatever is in front of it into moving art, live, while you film.</p>
+      <a class="bar" data-store href="#get"><canvas aria-hidden="true"></canvas><span data-store-label>Soon on the App Store</span><svg viewBox="0 0 34 14" aria-hidden="true"><path d="M0 7h34M27 0l7 7-7 7"/></svg></a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <main>
+    <section id="shutter">
+      <div class="shutter">
+        <div class="orbs">
+          <button class="orb mono" id="still" aria-label="Take a still"><canvas data-orb="mono" aria-hidden="true"></canvas></button>
+          <button class="orb" id="roll" aria-label="Start recording" aria-pressed="false"><canvas data-orb="red" aria-hidden="true"></canvas></button>
+        </div>
+        <h2>Red rolls.<br>White stills.</h2>
+        <p class="say">Gloom films and it shoots. Tap red to roll, sound and all. Tap white for a still, even halfway through a take. It all lands in your camera roll.</p>
+        <p class="figures"><span class="dot"></span><span id="timer">tap the red one</span></p>
+      </div>
+    </section>
+
+    <section id="shots">
+      <div class="head"><h2>Shot in Gloom</h2><span class="figures dim" id="shots-count"></span></div>
+      <div class="rule"></div>
+      <div class="shots" id="shots-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<section class="drops" id="get">
+  <div class="figure">
+    <canvas id="figure" aria-label="A woman drawn in moving lines of light"></canvas>
+    <video id="figure-src" src="assets/figure/w2.mp4" muted loop playsinline preload="auto" aria-hidden="true"></video>
+  </div>
+  <div class="drops-text">
+    <div class="head"><h2>How drops work</h2></div>
+    <div class="rule"></div>
+    <div class="points">
+      <div><span class="figures dim">01</span><h3>New drops</h3><p>Effects come out in sets called drops. More keep coming.</p></div>
+      <div><span class="figures dim">02</span><h3>Free</h3><p>Static is yours, Haze included. Every other effect plays in the camera, so you can try it on your own world first.</p></div>
+      <div><span class="figures dim">03</span><h3>Unlock</h3><p>Keep what you shoot with a drop for €1,99, or get everything for €9,99, once. That includes every drop still to come.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+  <main>
+    <section>
+      <div class="get">
+        <a class="bar" data-store href="#get"><canvas aria-hidden="true"></canvas><span data-store-label>Soon on the App Store</span><svg viewBox="0 0 34 14" aria-hidden="true"><path d="M0 7h34M27 0l7 7-7 7"/></svg></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="figures dim">
+    <span>Gloom, for iPhone</span>
+    <a href="privacy.html">Privacy</a>
+    <a href="support.html">Support</a>
+  </footer>
+</div>
+
+<script>
+// The App Store link. Empty until the app is out: the bars then say "Soon".
+const STORE_URL = "";
+
+const cap = s => s[0].toUpperCase() + s.slice(1);
+const quiet = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Clips only play while they are on screen.
+const watch = new IntersectionObserver(entries => {
+  for (const { target, isIntersecting } of entries) {
+    if (!isIntersecting) { target.pause(); continue; }
+    if (!target.src && target.dataset.src) target.src = target.dataset.src;
+    target.play().catch(() => {});
+  }
+}, { rootMargin: "100px" });
+
+// The examples: who is in the clip, the effect, and the drop it comes from.
+// A finish, when the clip has one, is named after the effect.
+const SHOTS = [
+  ["a", "tide", "003", "film"], ["b", "solar", "002"], ["a", "print", "002"],
+  ["b", "melt", "001"], ["a", "glass", "004"], ["b", "xray", "001"],
+];
+document.getElementById("shots-count").textContent = `${SHOTS.length} of 31 effects`;
+document.getElementById("shots-grid").innerHTML = SHOTS.map(([who, effect, code, finish]) => {
+  const file = `assets/shots/${who}-${effect}${finish ? "-" + finish : ""}`;
+  const name = cap(effect) + (finish ? ` + ${cap(finish)}` : "");
+  return `<figure><div class="frame"><video data-src="${file}.mp4" poster="${file}.jpg" muted loop playsinline preload="none" aria-label="A woman posing for the camera, filmed in ${name}"></video></div>
+   <figcaption class="figures dim"><b>${name}</b><span>drop ${code}</span></figcaption></figure>`;
+}).join("");
+document.querySelectorAll(".hero .film, #shots-grid video").forEach(video => watch.observe(video));
+
+// The App Store bars.
+for (const link of document.querySelectorAll("[data-store]")) {
+  if (STORE_URL) {
+    link.href = STORE_URL;
+    link.querySelectorAll("[data-store-label]").forEach(label => (label.textContent = "Get Gloom"));
+  } else if (link.classList.contains("bar")) {
+    link.removeAttribute("href");
+    link.setAttribute("aria-disabled", "true");
+  }
+}
+
+// The app's own shaders, in WebGL: the grainy bar and the shutter.
+const COMMON = `
+precision highp float;
+uniform vec2 size; uniform float time; uniform float scale; uniform float rec; uniform float mono;
+float hash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+vec3 colour(vec2 p, float t, float heat) {
+  vec2 w = p * 1.4 + vec2(sin(t * 0.5 + p.y * 2.0), cos(t * 0.4 + p.x * 2.2)) * 0.45;
+  float f = 0.5 + 0.5 * sin(w.x * 2.1 + sin(w.y * 1.7 + t * 0.3) * 1.5);
+  float g = 0.5 + 0.5 * sin(w.y * 2.4 - t * 0.35 + w.x);
+  vec3 a = mix(vec3(1.0, 0.45, 0.12), vec3(1.0, 0.1, 0.08), heat);
+  vec3 b = mix(vec3(0.25, 0.55, 1.0), vec3(0.72, 0.04, 0.34), heat);
+  vec3 c = mix(vec3(1.0, 0.93, 0.82), vec3(1.0, 0.55, 0.2), heat);
+  return mix(mix(a, b, f), c, g * g * 0.7);
+}
+vec2 here() { return vec2(gl_FragCoord.x, size.y - gl_FragCoord.y) / scale; }
+`;
+const BAR = COMMON + `
+void main() {
+  vec2 pos = here();
+  vec2 p = (pos - size / scale * 0.5) / (size.y / scale);
+  vec3 col = colour(p * 0.6, time, 0.0);
+  col *= 0.82 + 0.3 * hash(floor(pos * 2.0) + floor(time * 12.0) * 7.1);
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+}`;
+// Lit like a sphere at rest, like a pillow-shaped block while recording, and built
+// from grains that thin out toward its dark side.
+const ORB = COMMON + `
+void main() {
+  vec2 pos = here();
+  vec2 half_ = size / scale * 0.5;
+  vec2 p = (pos - half_) / min(half_.x, half_.y);
+  float pulse = 0.03 * sin(time * 5.0) * rec;
+  float circle = length(p) - 0.92;
+  vec2 q = abs(p) - 0.5;
+  float box = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - 0.12 - pulse;
+  float d = mix(circle, box, rec);
+  if (d > 0.0) { gl_FragColor = vec4(0.0); return; }
+  float r = clamp(length(p) / 0.95, 0.0, 1.0);
+  float z = sqrt(1.0 - r * r);
+  vec3 n = normalize(vec3(p * mix(1.0, 0.6, rec), z + 0.25 * rec));
+  float light = clamp(dot(n, normalize(vec3(-0.45, -0.6, 0.66))), 0.0, 1.0) * 1.2 + 0.04;
+  vec3 col = colour(p, time, mix(0.82, 1.0, rec)) * (1.0 + 0.25 * rec * (0.5 + 0.5 * sin(time * 5.0)));
+  col = mix(col, vec3(0.96, 0.95, 0.92), mono);
+  float lit = step(hash(floor(pos * 2.0) + floor(time * 12.0) * 7.1), light);
+  col *= mix(0.1, 1.0, lit);
+  float alpha = smoothstep(0.0, -2.0 / min(half_.x, half_.y), d);
+  gl_FragColor = vec4(col * alpha, alpha);
+}`;
+
+const surfaces = [];
+function surface(canvas, source, state) {
+  const gl = canvas.getContext("webgl", { antialias: false, premultipliedAlpha: true });
+  if (!gl) return;
+  const compile = (type, text) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, text);
+    gl.compileShader(shader);
+    return shader;
+  };
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, "attribute vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }"));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, source));
+  gl.bindAttribLocation(program, 0, "a");
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const at = name => gl.getUniformLocation(program, name);
+  surfaces.push({ canvas, gl, state, u: { size: at("size"), time: at("time"), scale: at("scale"), rec: at("rec"), mono: at("mono") } });
+}
+document.querySelectorAll(".bar canvas").forEach(canvas => surface(canvas, BAR, { rec: 0, mono: 0 }));
+const roll = { rec: 0, mono: 0, target: 0 };
+surface(document.querySelector('[data-orb="red"]'), ORB, roll);
+surface(document.querySelector('[data-orb="mono"]'), ORB, { rec: 0, mono: 1 });
+
+// Only draw what is on screen.
+const seen = new Set();
+const sight = new IntersectionObserver(entries => {
+  for (const { target, isIntersecting } of entries) isIntersecting ? seen.add(target) : seen.delete(target);
+}, { rootMargin: "50px" });
+surfaces.forEach(s => sight.observe(s.canvas));
+
+let last = 0;
+function paint(now) {
+  const scale = Math.min(devicePixelRatio || 1, 2);
+  const step = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  // The block takes 0.3 s to form and to melt back, eased at both ends.
+  roll.progress = Math.min(Math.max((roll.progress ?? 0) + (roll.target ? step : -step) / 0.3, 0), 1);
+  roll.rec = roll.progress * roll.progress * (3 - 2 * roll.progress);
+  for (const s of surfaces) {
+    if (!seen.has(s.canvas)) continue;
+    const w = Math.round(s.canvas.clientWidth * scale), h = Math.round(s.canvas.clientHeight * scale);
+    if (s.canvas.width !== w || s.canvas.height !== h) { s.canvas.width = w; s.canvas.height = h; }
+    const { gl, u } = s;
+    gl.viewport(0, 0, w, h);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.uniform2f(u.size, w, h);
+    gl.uniform1f(u.scale, scale);
+    gl.uniform1f(u.time, quiet ? 3.0 : (now / 1000) % 1000);
+    gl.uniform1f(u.rec, s.state.rec);
+    gl.uniform1f(u.mono, s.state.mono);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  requestAnimationFrame(paint);
+}
+requestAnimationFrame(paint);
+
+// The two shutters work: red rolls with a running clock, white blinks the screen.
+const shutter = document.querySelector(".shutter");
+const timer = document.getElementById("timer");
+const rollButton = document.getElementById("roll");
+let began = 0, ticking = 0;
+rollButton.onclick = () => {
+  roll.target = roll.target ? 0 : 1;
+  rollButton.setAttribute("aria-pressed", String(!!roll.target));
+  rollButton.setAttribute("aria-label", roll.target ? "Stop recording" : "Start recording");
+  shutter.classList.toggle("rolling", !!roll.target);
+  clearInterval(ticking);
+  if (roll.target) {
+    began = performance.now();
+    const tick = () => {
+      const t = Math.floor((performance.now() - began) / 1000);
+      timer.textContent = `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+    };
+    tick();
+    ticking = setInterval(tick, 250);
+  } else {
+    timer.textContent = "saved";
+  }
+};
+document.getElementById("still").onclick = () => {
+  shutter.classList.remove("flash");
+  void shutter.offsetWidth;
+  if (!quiet) shutter.classList.add("flash");
+  if (!roll.target) timer.textContent = "saved";
+};
+
+// ---------------------------------------------------------------------------
+// Shared WebGL plumbing for the two effect sections.
+function program(gl, fragment) {
+  const compile = (type, text) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, text);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) console.warn(gl.getShaderInfoLog(shader));
+    return shader;
+  };
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, "attribute vec2 a; void main() { gl_Position = vec4(a, 0.0, 1.0); }"));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fragment));
+  gl.bindAttribLocation(p, 0, "a");
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) return null;
+  gl.useProgram(p);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const u = {};
+  const count = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < count; i++) {
+    const name = gl.getActiveUniform(p, i).name;
+    u[name] = gl.getUniformLocation(p, name);
+  }
+  return u;
+}
+function texture(gl) {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  return t;
+}
+function fit(canvas, gl, cap = 2) {
+  const scale = Math.min(devicePixelRatio || 1, cap);
+  const w = Math.round(canvas.clientWidth * scale), h = Math.round(canvas.clientHeight * scale);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, w, h);
+  return [w, h, scale];
+}
+const onScreen = new Set();
+const looking = new IntersectionObserver(entries => {
+  for (const { target, isIntersecting } of entries) isIntersecting ? onScreen.add(target) : onScreen.delete(target);
+}, { rootMargin: "80px" });
+
+// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// The figure. Her clip comes in as two pictures side by side: how bright she
+// is, and where she is. Lines run across her and are lifted by her brightness,
+// as in Wire; toward one side they break up into grains. Moving over her
+// lifts the lines further.
+{
+  const canvas = document.getElementById("figure");
+  const video = document.getElementById("figure-src");
+  const gl = canvas.getContext("webgl", { antialias: false, premultipliedAlpha: false });
+  const u = gl && program(gl, `
+precision highp float;
+uniform sampler2D clip; uniform vec2 size; uniform float time; uniform float lift; uniform vec2 pointer; uniform float aspect;
+float hash(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+// Her picture fills the canvas height, centred; outside it is empty.
+vec2 place(vec2 uv) {
+  float ratio = size.x / size.y;
+  return ratio >= aspect ? vec2((uv.x - 0.5) * ratio / aspect + 0.5, uv.y)
+                         : vec2(uv.x, (uv.y - 0.5) * aspect / ratio + 0.5);
+}
+float bright(vec2 p) {
+  if (p.x < 0.0 || p.x > 1.0) return 0.0;
+  // Softened, so the lines follow her form and not every crease in her shirt.
+  float b = 0.0;
+  for (int i = -2; i <= 2; i++) for (int j = -2; j <= 2; j++)
+    b += texture2D(clip, vec2(clamp(p.x + float(i) * 0.012, 0.0, 1.0) * 0.5, p.y + float(j) * 0.008)).r;
+  return b / 25.0;
+}
+float there(vec2 p) { return (p.x < 0.0 || p.x > 1.0) ? 0.0 : texture2D(clip, vec2(0.5 + clamp(p.x, 0.0, 1.0) * 0.5, p.y)).r; }
+// How far in from her outline a point is: her body bulges toward the middle.
+float body(vec2 p) {
+  float b = 0.0;
+  for (int i = -3; i <= 3; i++) b += there(p + vec2(float(i) * 0.03, 0.0));
+  return b / 7.0;
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / size;
+  vec2 p = place(uv);
+  float lines = 74.0;
+  float k0 = floor(p.y * lines);
+  float light = 0.0, glow = 0.0;
+  for (int i = -4; i <= 4; i++) {
+    float k = k0 + float(i);
+    float y0 = (k + 0.5) / lines;
+    vec2 at = vec2(p.x, y0);
+    float m = there(at);
+    if (m < 0.05) continue;
+    // Brightness and the silhouette's own body lift the line, so it follows her shape.
+    float depth = bright(at) * 0.55 + body(at) * 0.75;
+    float near = 1.0 - smoothstep(0.0, 0.35, distance(p, pointer));
+    float y = y0 + depth * (0.022 + lift * 0.025 + near * 0.03) + sin(p.x * 30.0 + time * 2.0 + k) * 0.001;
+    float d = abs(p.y - y) * size.y;
+    float line = smoothstep(2.4, 0.4, d) * m;
+    // Toward her right side the lines come apart into grains that drift.
+    float edge = smoothstep(0.45, 0.85, p.x + 0.12 * sin(time * 0.7 + y0 * 9.0));
+    float grain = step(0.55 + 0.4 * (1.0 - edge), hash(vec2(floor(p.x * 260.0 + time * 6.0), k)));
+    line *= mix(1.0, grain, edge);
+    light = max(light, line);
+    glow += exp(-d * 0.3) * m * 0.22;
+  }
+  vec3 ink = vec3(0.35, 0.95, 0.88);
+  vec3 col = ink * light * 1.25 + ink * glow * 0.7;
+  col *= 0.9 + 0.2 * hash(floor(gl_FragCoord.xy) + floor(time * 12.0));
+  gl_FragColor = vec4(col, 1.0);
+}`);
+  if (u) {
+    const tex = texture(gl);
+    let pointer = [-1, -1], lift = 0, liftTarget = 0;
+    const move = e => {
+      const r = canvas.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = 1 - (e.clientY - r.top) / r.height;
+      const aspect = 360 / 640, ratio = r.width / r.height;
+      pointer = ratio >= aspect ? [(x - 0.5) * ratio / aspect + 0.5, y] : [x, (y - 0.5) * aspect / ratio + 0.5];
+      liftTarget = 1;
+    };
+    canvas.addEventListener("pointermove", move);
+    canvas.addEventListener("pointerdown", move);
+    canvas.addEventListener("pointerleave", () => { liftTarget = 0; pointer = [-1, -1]; });
+    looking.observe(canvas);
+    const frame = now => {
+      requestAnimationFrame(frame);
+      const visible = onScreen.has(canvas);
+      if (!visible) { if (!video.paused) video.pause(); return; }
+      if (video.paused) video.play().catch(() => {});
+      if (video.readyState < 2) return;
+      const [w, h] = fit(canvas, gl, 2);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+      lift += (liftTarget - lift) * 0.08;
+      gl.uniform2f(u.size, w, h);
+      gl.uniform1f(u.time, (now / 1000) % 1000);
+      gl.uniform1f(u.lift, lift);
+      gl.uniform2f(u.pointer, pointer[0], pointer[1]);
+      gl.uniform1f(u.aspect, 360 / 640);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+    requestAnimationFrame(frame);
+  }
+}
+</script>
+</body>
+</html>
