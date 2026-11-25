@@ -194,13 +194,13 @@
       <div class="name">Gloom</div>
       <nav>
         <a href="#shots">Shots</a>
-        <a href="#get" data-store>Get it</a>
+        <a href="https://apps.apple.com/app/id6835207703" data-store>Get it</a>
       </nav>
     </header>
     <h1>Not what<br>you see.</h1>
     <div class="intro">
       <p>Gloom is a camera that turns whatever is in front of it into moving art, live, while you film.</p>
-      <a class="bar" data-store href="#get"><canvas aria-hidden="true"></canvas><span data-store-label>Soon on the App Store</span><svg viewBox="0 0 34 14" aria-hidden="true"><path d="M0 7h34M27 0l7 7-7 7"/></svg></a>
+      <a class="bar" data-store href="https://apps.apple.com/app/id6835207703"><canvas aria-hidden="true"></canvas><span data-store-label>Get Gloom</span><svg viewBox="0 0 34 14" aria-hidden="true"><path d="M0 7h34M27 0l7 7-7 7"/></svg></a>
     </div>
   </div>
 </div>
@@ -248,7 +248,7 @@
   <main>
     <section>
       <div class="get">
-        <a class="bar" data-store href="#get"><canvas aria-hidden="true"></canvas><span data-store-label>Soon on the App Store</span><svg viewBox="0 0 34 14" aria-hidden="true"><path d="M0 7h34M27 0l7 7-7 7"/></svg></a>
+        <a class="bar" data-store href="https://apps.apple.com/app/id6835207703"><canvas aria-hidden="true"></canvas><span data-store-label>Get Gloom</span><svg viewBox="0 0 34 14" aria-hidden="true"><path d="M0 7h34M27 0l7 7-7 7"/></svg></a>
       </div>
     </section>
   </main>
@@ -262,7 +262,7 @@
 
 <script>
 // The App Store link. Empty until the app is out: the bars then say "Soon".
-const STORE_URL = "";
+const STORE_URL = "https://apps.apple.com/app/id6835207703";
 
 const cap = s => s[0].toUpperCase() + s.slice(1);
 const quiet = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -282,7 +282,7 @@ const SHOTS = [
   ["a", "tide", "003", "film"], ["b", "solar", "002"], ["a", "print", "002"],
   ["b", "melt", "001"], ["a", "glass", "004"], ["b", "xray", "001"],
 ];
-document.getElementById("shots-count").textContent = `${SHOTS.length} of 31 effects`;
+document.getElementById("shots-count").textContent = `${SHOTS.length} of 45 effects`;
 document.getElementById("shots-grid").innerHTML = SHOTS.map(([who, effect, code, finish]) => {
   const file = `assets/shots/${who}-${effect}${finish ? "-" + finish : ""}`;
   const name = cap(effect) + (finish ? ` + ${cap(finish)}` : "");
